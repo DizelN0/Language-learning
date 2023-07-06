@@ -1,6 +1,9 @@
 import sqlite3
 from tkinter import *
 from tkinter import messagebox
+from tkinter.ttk import Progressbar
+from ttkthemes import ThemedTk
+import random
 
 # Создаем подключение к базе данных
 connection = sqlite3.connect('flashcards.db')
@@ -32,11 +35,14 @@ def display_flashcards():
     flashcards_window = Toplevel(root)
     flashcards_window.title("Карточки")
 
-    scrollbar = Scrollbar(flashcards_window)
+    flashcards_frame = Frame(flashcards_window)
+    flashcards_frame.pack()
+
+    scrollbar = Scrollbar(flashcards_frame)
     scrollbar.pack(side=RIGHT, fill=Y)
 
-    flashcards_listbox = Listbox(flashcards_window, width=50, yscrollcommand=scrollbar.set)
-    flashcards_listbox.pack()
+    flashcards_listbox = Listbox(flashcards_frame, width=50, yscrollcommand=scrollbar.set)
+    flashcards_listbox.pack(side=LEFT, fill=Y)
 
     scrollbar.config(command=flashcards_listbox.yview)
 
@@ -59,47 +65,48 @@ def test_flashcards():
         test_window.destroy()
         return
 
+    random.shuffle(flashcards)
+
     score = 0
+    total_flashcards = len(flashcards)
+    index = 0
 
     def check_translation():
-        nonlocal score
+        nonlocal score, index
         term, translation = flashcards[index]
         user_translation = user_translation_entry.get().strip()
 
         if user_translation.lower() == translation.lower():
-            messagebox.showinfo("Правильно!", "Ответ верный")
             score += 1
-        else:
-            messagebox.showwarning("Неправильно", f"Неправильный ответ. Правильный ответ: {translation}")
 
         user_translation_entry.delete(0, END)
-        test_flashcard()
+        progress_bar['value'] = (score / total_flashcards) * 100
 
-    def test_flashcard():
-        nonlocal index
-
-        if index < len(flashcards):
+        index += 1
+        if index < total_flashcards:
             term, _ = flashcards[index]
             flashcard_label.config(text=term)
-            index += 1
         else:
-            messagebox.showinfo("Результат", f"Тестирование завершено. Ваш счет: {score}/{len(flashcards)}")
+            messagebox.showinfo("Результат", f"Тестирование завершено. Ваш счет: {score}/{total_flashcards}")
             test_window.destroy()
 
     flashcard_label = Label(test_window, text="")
     flashcard_label.pack(pady=10)
 
-    user_translation_entry = Entry(test_window)
+    user_translation_entry = Entry(test_window, width=30)
     user_translation_entry.pack(pady=10)
 
     submit_button = Button(test_window, text="Ответить", command=check_translation)
     submit_button.pack(pady=5)
 
-    index = 0
-    test_flashcard()
+    progress_bar = Progressbar(test_window, orient=HORIZONTAL, length=200, mode='determinate')
+    progress_bar.pack(pady=10)
+
+    term, _ = flashcards[index]
+    flashcard_label.config(text=term)
 
 # Главное окно приложения
-root = Tk()
+root = ThemedTk(theme="radiance")
 root.title("Помощник по изучению иностранных языков")
 
 # Создаем метки и поля ввода для добавления карточек
